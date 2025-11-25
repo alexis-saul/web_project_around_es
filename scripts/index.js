@@ -3,6 +3,7 @@ const popupEditProfile = document.querySelector("#edit-popup");
 const closeButtonEdit = popupEditProfile.querySelector(".popup__close");
 const profileName = document.querySelector(".profile__title");
 const profileAbout = document.querySelector(".profile__description");
+const formElement = document.querySelector("#edit-profile-form");
 
 const nameInput = popupEditProfile.querySelector(".popup__input_type_name");
 const aboutInput = popupEditProfile.querySelector(
@@ -21,6 +22,10 @@ const popupCaption = imagePopup.querySelector(".popup__caption");
 const closeImageButton = imagePopup.querySelector(".popup__close");
 
 const placeLinkInput = newCardForm.querySelector(".popup__input_type_url");
+
+document.querySelectorAll(".popup").forEach((popup) => {
+  popup.addEventListener("mousedown", closePopupOnOverlayClick);
+});
 
 const initialCards = [
   {
@@ -54,10 +59,7 @@ const cardTemplate = document
   .content.querySelector(".card");
 const cardsContainer = document.querySelector(".cards__list");
 
-function getCardElement(
-  name = "Sin titulo",
-  link = "./images/placeholder.jpg"
-) {
+function getCardElement(name, link) {
   const cardElement = cardTemplate.cloneNode(true);
   const cardTitle = cardElement.querySelector(".card__title");
   const cardImage = cardElement.querySelector(".card__image");
@@ -101,13 +103,35 @@ initialCards.forEach(function (card) {
 
 function openModal(modal) {
   modal.classList.add("popup_is-opened"); // agrega la clase que lo hace visible
+  document.addEventListener("keydown", handleEscClose);
 }
 
 function closeModal(modal) {
   modal.classList.remove("popup_is-opened"); // quita la clase para ocultarlo
+  document.removeEventListener("keydown", handleEscClose);
+}
+
+function closePopupOnOverlayClick(evt) {
+  if (
+    evt.target === evt.currentTarget ||
+    evt.target.classList.contains("popup__close")
+  ) {
+    closeModal(evt.currentTarget);
+  }
+}
+
+function handleEscClose(evt) {
+  if (evt.key === "Escape") {
+    const openedPopup = document.querySelector(".popup_is-opened");
+    if (openedPopup) {
+      closeModal(openedPopup);
+    }
+  }
 }
 
 addbutton.addEventListener("click", function () {
+  newCardForm.reset(); //limpia los inputs
+  resetValidation(newCardForm, validationConfig);
   openModal(popupNewCard);
 });
 
@@ -129,14 +153,13 @@ function fillProfileForm() {
 }
 
 function handleOpenEditModal() {
-  fillProfileForm();
+  formElement.reset();
+  resetValidation(formElement, validationConfig);
   openModal(popupEditProfile);
 }
 
 editButton.addEventListener("click", handleOpenEditModal);
 closeButtonEdit.addEventListener("click", () => closeModal(popupEditProfile));
-
-const formElement = document.querySelector("#edit-profile-form");
 
 function handleProfileFormSubmit(evt) {
   evt.preventDefault(); // evita que el formulario se envíe y recargue la página
