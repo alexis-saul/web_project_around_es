@@ -1,6 +1,10 @@
 import Card from "./card.js";
 import FormValidator from "./FormValidator.js";
-import { openModal, closeModal, closePopupOnOverlayClick } from "./utils.js";
+import Section from "./Section.js";
+import Popup from "./Popup.js";
+import PopupWithImage from "./PopupWithImage.js";
+import PopupWithForm from "./PopupWithForm.js";
+import UserInfo from "./UserInfo.js";
 
 const validationConfig = {
   formSelector: ".popup__form",
@@ -13,26 +17,22 @@ const validationConfig = {
 
 // --- Selectores --- //
 const editButton = document.querySelector(".profile__edit-button");
-const popupEditProfile = document.querySelector("#edit-popup");
-const profileName = document.querySelector(".profile__title");
-const profileAbout = document.querySelector(".profile__description");
 const formElement = document.querySelector("#edit-profile-form");
 
 const nameInput = formElement.querySelector("#name-input");
 const aboutInput = formElement.querySelector("#description-input");
 
 const addButton = document.querySelector(".profile__add-button");
-const popupNewCard = document.querySelector("#new-card-popup");
 const newCardForm = document.querySelector("#new-card-form");
-const placeNameInput = newCardForm.querySelector("#card-name-input");
-const placeLinkInput = newCardForm.querySelector("#url-input");
 
-const imagePopup = document.querySelector("#image-popup");
-const popupImage = imagePopup.querySelector(".popup__image");
-const popupCaption = imagePopup.querySelector(".popup__caption");
+const imagePopup = new PopupWithImage("#image-popup");
+imagePopup.setEventListeners();
 
-document.querySelectorAll(".popup").forEach((popup) => {
-  popup.addEventListener("mousedown", closePopupOnOverlayClick);
+const imagePopupInstance = new Popup("#image-popup");
+
+const userInfo = new UserInfo({
+  nameSelector: ".profile__title",
+  jobSelector: ".profile__description",
 });
 
 // --- Render inicial --- //
@@ -63,24 +63,26 @@ const initialCards = [
   },
 ];
 
-const cardsContainer = document.querySelector(".cards__list");
+imagePopupInstance.setEventListeners();
 
 // --- Función para abrir imagen --- //
 function handleImageClick(name, link) {
-  popupImage.src = link;
-  popupImage.alt = name;
-  popupCaption.textContent = name;
-  openModal(imagePopup);
+  imagePopup.open(name, link);
 }
 
-// --- Renderizado de cards --- //
-function renderCard(item) {
-  const card = new Card(item, "#card-template", handleImageClick);
-  const cardElement = card.generateCard();
-  cardsContainer.prepend(cardElement);
-}
+const cardSection = new Section(
+  {
+    items: initialCards,
+    renderer: (item) => {
+      const card = new Card(item, "#card-template", handleImageClick);
+      const cardElement = card.generateCard();
+      cardSection.addItem(cardElement);
+    },
+  },
+  ".cards__list"
+);
 
-initialCards.forEach(renderCard);
+cardSection.renderItems();
 
 // --- Validación --- //
 const editFormValidator = new FormValidator(validationConfig, formElement);
@@ -89,36 +91,44 @@ editFormValidator.enableValidation();
 newCardFormValidator.enableValidation();
 
 // --- Eventos --- //
+
+const editProfilePopup = new PopupWithForm("#edit-popup", (formData) => {
+  userInfo.setUserInfo({
+    name: formData.name,
+    job: formData.description,
+  });
+  editProfilePopup.setEventListeners();
+});
+
+editProfilePopup.setEventListeners();
+
 editButton.addEventListener("click", () => {
-  nameInput.value = profileName.textContent;
-  aboutInput.value = profileAbout.textContent;
+  const userData = userInfo.getUserInfo();
+
+  nameInput.value = userData.name;
+  aboutInput.value = userData.job;
 
   editFormValidator.resetValidation();
-  openModal(popupEditProfile);
+  editProfilePopup.open();
 });
 
-formElement.addEventListener("submit", (evt) => {
-  evt.preventDefault();
+const newCardPopup = new PopupWithForm("#new-card-popup", (formData) => {
+  const card = new Card(
+    {
+      name: formData["place-name"],
+      link: formData.link,
+    },
+    "#card-template",
+    handleImageClick
+  );
 
-  profileName.textContent = nameInput.value;
-  profileAbout.textContent = aboutInput.value;
-
-  closeModal(popupEditProfile);
+  cardSection.addItem(card.generateCard());
+  newCardPopup.setEventListeners();
 });
+
+newCardPopup.setEventListeners();
 
 addButton.addEventListener("click", () => {
-  newCardForm.reset();
   newCardFormValidator.resetValidation();
-  openModal(popupNewCard);
-});
-
-newCardForm.addEventListener("submit", (evt) => {
-  evt.preventDefault();
-
-  renderCard({
-    name: placeNameInput.value,
-    link: placeLinkInput.value,
-  });
-
-  closeModal(popupNewCard);
+  newCardPopup.open();
 });
